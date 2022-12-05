@@ -7,13 +7,7 @@
 
 import UIKit
 
-class ViewController: UIViewController {
-    
-    @IBOutlet var cardButtons: [UIButton]!
-    
-    @IBOutlet weak var scoreLabel: UILabel!
-        
-    @IBOutlet weak var deal3MoreCardsButton: UIButton!
+class ViewController: UIViewController, UIDynamicAnimatorDelegate {
     
     private lazy var game = Game()
     private let defaultBorderWidth: CGFloat = 0.5
@@ -21,108 +15,260 @@ class ViewController: UIViewController {
     private let selectedBorderWidth: CGFloat = 3
     private var selectedBorderColor = UIColor.blue.cgColor
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        initializeDeckView()
-        updateViewFromModel()
+    @IBOutlet weak var firstPlayerButton: UIButton!
+    @IBOutlet weak var firstPlayerScore: UILabel!
+    @IBOutlet weak var secondPlayerButton: UIButton!
+    @IBOutlet weak var secondPlayerScore: UILabel!
+    
+    @IBOutlet weak var dealCardsButton: UIButton!
+    
+    @IBOutlet weak var boardView: BoardView! {
+        didSet {
+            let swipe = UISwipeGestureRecognizer(target: self, action: #selector(dealCards))
+            swipe.direction = .down
+            boardView.addGestureRecognizer(swipe)
+            
+            let rotate = UIRotationGestureRecognizer(target: self, action: #selector(shuffle))
+            boardView.addGestureRecognizer(rotate)
+        }
     }
     
-    @IBAction func touchCard(_ sender: UIButton) {
-        if let cardNumber = cardButtons.firstIndex(of: sender) {
-            game.chooseCard(at: cardNumber)
-            initializeDeckView()
+    @objc func dealCards() {
+        if !game.cardsOnScreen.isEmpty {
+            game.dealThreeCards()
+            updateViewFromModel()
+        }
+    }
+    
+    @objc func shuffle(_ sender: UITapGestureRecognizer) {
+        switch sender.state {
+        case .ended:
+            game.shuffleCards()
+            updateViewFromModel()
+        default:
+            break
+        }
+    }
+    
+    @objc func chooseCard(_ sender: UITapGestureRecognizer) {
+        if let cardView = sender.view as? CardView, let cardIndex = boardView.cardViews.firstIndex(of: cardView) {
+            game.chooseCard(at: cardIndex)
             updateViewFromModel()
         } else {
-            print("chosen card was not in cardButtons")
+            print("Error when tapping on card")
         }
     }
     
-    @IBAction func newGameButtonPressed(_ sender: UIButton) {
-        game = Game()
-        initializeDeckView()
-        updateViewFromModel()
-    }    
+    private lazy var animator : UIDynamicAnimator = {
+        let animator = UIDynamicAnimator(referenceView: boardView)
+        animator.delegate = self
+        return animator
+    }()
     
-    @IBAction func deal3MoreCardsPressed(_ sender: UIButton) {
-        if game.didSelectThreeCards {
-            game.replaceMatchingCards()
-            initializeDeckView()
-        } else {
-            game.gameRange += 3
-        }
+    private lazy var behavior: FlyawayBehavior = {
+        let behavior = FlyawayBehavior(animator)
+        return behavior
+    }()
+    
+    private var centerOfTheDeck: CGPoint {
+        let center = dealCardsButton.center
+        let centerOfBoardView = view.convert(center, to: boardView)
+        boardView.centerOfTheDeck = centerOfBoardView
+        return centerOfBoardView
+    }
+    
+    private var discardPileCenter: CGPoint {
+        return centerOfTheDeck
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        behavior.snapPoint = discardPileCenter
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        secondPlayerScore.transform = CGAffineTransformMakeRotation(CGFloat.pi)
+        secondPlayerButton.transform = CGAffineTransformMakeRotation(CGFloat.pi)
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        updateViewFromModel()
+        NotificationCenter.default.addObserver(self, selector: #selector(updateViewFromModel), name: NSNotification.Name(rawValue: "didFinishTurn"), object: nil)
+    }
+    
+    @IBAction func firstPlayerFoundSet(_ sender: UIButton) {
+        game.setTurn(for: .first)
         updateViewFromModel()
     }
     
-    private func initializeDeckView() {
-        cardButtons.forEach() { $0.setAttributedTitle(nil, for: .normal); $0.layer.borderWidth = 0; $0.alpha = 0.2; $0.layer.cornerRadius = 6; $0.isEnabled = false }
+    @IBAction func secondPlayerFoundSet(_ sender: UIButton) {
+        game.setTurn(for: .second)
+        updateViewFromModel()
     }
     
-    private func updateViewFromModel() {
-        scoreLabel.text = "Score: \(game.score)"
-        deal3MoreCardsButton.isEnabled = game.didSelectThreeCards || (game.gameRange < 24 && game.cards.count > 2)
-        
-        for index in 0..<game.gameRange {
-            let button = cardButtons[index]
+    @IBAction func dealCardsButtonPressed(_ sender: UIButton) {
+        dealCards()
+    }
+    
+    @objc func updateViewFromModel() {
+        for index in game.cardsOnScreen.indices {
             let card = game.cardsOnScreen[index]
-            
-            if game.matchedCardsToRemove.contains(card) {
-                continue
+
+            if index >= boardView.cardViews.count {
+                // create cards
+                let cardView = createCardView()
+                updateCardView(cardView, for: card)
+                boardView.cardViews.append(cardView)
+                boardView.addSubview(cardView)
+            } else {
+                // replace cards
+                let cardView = boardView.cardViews[index]
+                updateCardView(cardView, for: card)
+                configureCardViewState(cardView, card)
             }
             
-            button.isEnabled = true
-            button.alpha = 1
-            button.setAttributedTitle(attributedString(for: card), for: .normal)
-            
-            if let match = card.isMatched {
-                selectedBorderColor = match ? #colorLiteral(red: 0, green: 1, blue: 0.08472456465, alpha: 1).cgColor : #colorLiteral(red: 1, green: 0, blue: 0, alpha: 1).cgColor
-            } else {
-                selectedBorderColor = #colorLiteral(red: 0.2392156869, green: 0.6745098233, blue: 0.9686274529, alpha: 1).cgColor
+            // remove from boardView
+            for _ in game.cardsOnScreen.count..<boardView.cardViews.count {
+                boardView.cardViews.removeLast().removeFromSuperview()
             }
             
-            if card.isSelected {
-                button.layer.borderWidth = selectedBorderWidth
-                button.layer.borderColor = selectedBorderColor
+            // Deal Cards Animation
+            var numberOfCardsDealt = 0
+            Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { (timer) in
+                for cardView in self.boardView.cardViews {
+                    if (cardView.alpha == 0) {
+                        cardView.animateDeal(from: self.centerOfTheDeck, delay: TimeInterval(numberOfCardsDealt) * 0.25)
+                        numberOfCardsDealt += 1
+                    }
+                }
+            }
+            
+            // replace or remove matching cards
+            if let matched = game.didSelectThreeCardsThatMatch, matched {
+                if game.cards.isEmpty {
+                    game.dealThreeCards()
+                    for index in game.cardsOnScreen.indices {
+                        let card = game.cardsOnScreen[index]
+                        let cardView = boardView.cardViews[index]
+                        cardView.alpha = 1
+                        updateCardView(cardView, for: card)
+                        configureCardViewState(cardView, card)
+                    }
+                    for _ in game.cardsOnScreen.count..<boardView.cardViews.count {
+                        boardView.cardViews.removeLast().removeFromSuperview()
+                    }
+                } else {
+                    dealCards()
+                }
+            }
+            
+            // update labels
+            firstPlayerScore.text =  "\(game.firstPlayerScore):\(game.secondPlayerScore)"
+            secondPlayerScore.text = "\(game.secondPlayerScore):\(game.firstPlayerScore)"
+            
+            if let _ = game.currentPlayer {
+                firstPlayerButton.isEnabled = false
+                secondPlayerButton.isEnabled = false
             } else {
-                button.layer.borderWidth = defaultBorderWidth
-                button.layer.borderColor = defaultBorderColor
+                firstPlayerButton.isEnabled = true
+                secondPlayerButton.isEnabled = true
+            }
+            
+            if game.cards.isEmpty {
+                dealCardsButton.isEnabled = false
+            } else {
+                dealCardsButton.isEnabled = true
             }
         }
     }
     
-    private func attributedString(for card: Card) -> NSAttributedString {
-        var attributes = [NSAttributedString.Key : Any]()
-        var cardColor = UIColor()
-        var cardString = ""
-        let font = UIFont.preferredFont(forTextStyle: .body).withSize(25)
-        
-        attributes = [NSAttributedString.Key.font: font]
-        
-        switch card.shape {
-        case .round: cardString = "●"
-        case .square: cardString = "■"
-        case .triangle: cardString = "▲"
+    private var tmpCards = [CardView]()
+    private func configureCardViewState(_ cardView: CardView, _ card: Card) {
+        if game.selectedCards.contains(card) {
+            cardView.isSelected = true
+            cardView.isMatched = game.didSelectThreeCardsThatMatch
+            if let matched = game.didSelectThreeCardsThatMatch, matched {
+                let tmpCard = cardView.copyCard()
+                tmpCards.append(tmpCard)
+                boardView.addSubview(tmpCard)
+                behavior.addItem(tmpCard)
+                cardView.alpha = 0
+            }
+        } else {
+            cardView.isSelected = false
+            cardView.isMatched = nil
         }
-        
+        cardView.configureState()
+    }
+    
+    func dynamicAnimatorDidPause(_ animator: UIDynamicAnimator) {
+        tmpCards.forEach { (tmpCard) in
+            UIView.transition(with: tmpCard, duration: 0.5, options: [.transitionFlipFromLeft], animations: {
+                tmpCard.isFaceup = false
+            }, completion: { (isComplete) in
+                self.behavior.remove(tmpCard)
+                tmpCard.removeFromSuperview()
+            })
+        }
+    }
+    
+    private func createCardView() -> CardView {
+        let cardView = CardView(behavior)
+        let tap = UITapGestureRecognizer(target: self, action: #selector(chooseCard))
+        cardView.addGestureRecognizer(tap)
+        return cardView
+    }
+    
+    private func updateCardView(_ cardView: CardView, for card: Card) {
+        let count = card.number.rawValue
+        let color: UIColor
+        let shape: Card.Shape
+        let shading: Card.Shading
         switch card.color {
-        case .red: cardColor = .red
-        case .blue: cardColor = .blue
-        case .green: cardColor = .green
+        case .green:
+            color = #colorLiteral(red: 0.07843137255, green: 0.6078431373, blue: 0.2666666667, alpha: 1)
+        case .red:
+            color = #colorLiteral(red: 0.8196078431, green: 0.1411764706, blue: 0.1960784314, alpha: 1)
+        case .blue:
+            color = #colorLiteral(red: 0.1764705882, green: 0.1137254902, blue: 0.3960784314, alpha: 1)
         }
-        
+        switch card.shape {
+        case .diamond:
+            shape = .diamond
+        case .oval:
+            shape = .oval
+        case .squiggle:
+            shape = .squiggle
+        }
         switch card.shading {
         case .outlined:
-            attributes[.strokeWidth] = 12
-            fallthrough
-        case .filled:
-            attributes[.foregroundColor] = cardColor
+            shading = .outlined
+        case .solid:
+            shading = .solid
         case .striped:
-            attributes[.foregroundColor] = cardColor.withAlphaComponent(0.3)
+            shading = .striped
         }
         
-        // Number of characters
-        cardString = String(repeating: cardString, count: card.number.rawValue)
-        return NSAttributedString(string: cardString, attributes: attributes)
+        if cardView.count != count {
+            cardView.count = count
+        }
+        if cardView.color != color {
+            cardView.color = color
+        }
+        if cardView.shape != shape {
+            cardView.shape = shape
+        }
+        if cardView.shading != shading {
+            cardView.shading = shading
+        }
+        
+        if let _ = game.currentPlayer {
+            cardView.isUserInteractionEnabled = true
+        } else {
+            cardView.isUserInteractionEnabled = false
+        }
     }
-
+    
 }
 

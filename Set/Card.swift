@@ -24,8 +24,6 @@ struct Card: Equatable, CustomStringConvertible {
     var shape: Shape
     var number: Number
     var shading: Shading
-    var isMatched: Bool?
-    var isSelected = false
     
     static func getUniqueIdentifier() -> Int {
         identifierCount += 1
@@ -43,15 +41,15 @@ struct Card: Equatable, CustomStringConvertible {
 
 extension Card {
     enum Shape: CaseIterable {
-        case triangle
-        case round
-        case square
+        case squiggle
+        case oval
+        case diamond
     }
     
     enum Shading: CaseIterable {
-        case filled
-        case striped
+        case solid
         case outlined
+        case striped
     }
     
     enum Color: CaseIterable {

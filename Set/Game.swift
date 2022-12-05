@@ -9,38 +9,28 @@ import Foundation
 
 class Game {
     
-    private(set) var upperCardLimit = 24
-    private(set) var standarCardCount = 12
-    private(set) var cards = [Card]()
-    private(set) var cardsOnScreen: [Card]
+    private(set) var cards = [Card]() //deckOfCards
+    private(set) var cardsOnScreen = [Card]() //playingCards
+    private(set) var selectedCards = [Card]()
+    private(set) var matchedCards = [Card]()
+    private(set) var setOfCards = [Card]()
     private(set) var score = 0
     
-    var gameRange: Int {
-        didSet {
-            if gameRange > upperCardLimit { gameRange = upperCardLimit }
-            cardsOnScreen += cards.getFirst(amountOf: gameRange - cardsOnScreen.count)
-        }
-    }
+    private(set) var firstPlayerScore = 0
+    private(set) var secondPlayerScore = 0
+    private(set) var currentPlayer: Player?
     
-    var didSelectThreeCards: Bool {
-        return selectedCards.count == 3
-    }
-        
-    private var selectedCards: [Card] {
+    var didSelectThreeCardsThatMatch: Bool? {
         get {
-            return cardsOnScreen.filter() { $0.isSelected }
-        }
-    }
-    
-    var matchedCardsToRemove: [Card] {
-        get {
-            return cardsOnScreen.filter() { $0.isMatched ?? false && !$0.isSelected }
+            if selectedCards.count != 3 {
+                return nil
+            }
+            return checkIfMatch(with: selectedCards)
         }
     }
     
     init() {
         cards = []
-        gameRange = standarCardCount
         score = 0
         for color in Card.Color.allCases {
             for shape in Card.Shape.allCases {
@@ -53,72 +43,148 @@ class Game {
             }
         }
         cards.shuffle()
-        cardsOnScreen = cards.getFirst(amountOf: gameRange)
+    }
+    
+    func setTurn(for player: Player) {
+        currentPlayer = player
+        Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { (timer) in
+            self.currentPlayer = nil
+            if let matched = self.didSelectThreeCardsThatMatch, matched{
+            } else {
+                self.selectedCards.removeAll()
+            }
+            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "didFinishTurn"), object: nil)
+        }
     }
     
     func replaceMatchingCards() {
-        for index in cardsOnScreen.indices {
-            if cardsOnScreen[index].isMatched ?? false {
-                if !cards.isEmpty {
-                    cardsOnScreen[index] = cards.removeFirst()
+        if cards.isEmpty {
+            for card in selectedCards {
+                cardsOnScreen.remove(at: cardsOnScreen.firstIndex(of: card)!)
+                matchedCards.append(card)
+            }
+        } else {
+            cardsOnScreen = cardsOnScreen.map {
+                if selectedCards.contains($0) {
+                    matchedCards.append($0)
+                    return cards.remove(at: cards.count.arc4random)
                 } else {
-                    cardsOnScreen[index].isSelected = false
-                    cardsOnScreen[index].isMatched = true
+                    return $0
                 }
-            } else {
-                cardsOnScreen[index].isSelected = false
-                cardsOnScreen[index].isMatched = nil
             }
         }
     }
     
-    private func checkIfMatch() -> Bool {
+    private func checkIfMatch(with cards: [Card]) -> Bool {
         var numbers = Set<Card.Number>()
         var shapes = Set<Card.Shape>()
         var colors = Set<Card.Color>()
         var shadings = Set<Card.Shading>()
         
-        for card in selectedCards {
+        for card in cards {
             numbers.insert(card.number); shapes.insert(card.shape); colors.insert(card.color); shadings.insert(card.shading)
         }
         let isSet = (numbers.count == 1 || numbers.count == 3) && (shapes.count == 1 || shapes.count == 3) && (colors.count == 1 || colors.count == 3) && (shadings.count == 1 || shadings.count == 3)
         return isSet
     }
     
+    private func decreaseScore(by number: Int) {
+        if let player = currentPlayer {
+            switch player {
+            case .first:
+                firstPlayerScore -= number
+            case .second:
+                secondPlayerScore -= number
+            }
+        }
+    }
+    
     func chooseCard(at index: Int) {
-        if didSelectThreeCards { replaceMatchingCards() }
+        if didSelectThreeCardsThatMatch != nil {
+            replaceMatchingCards()
+            selectedCards.removeAll()
+        }
         
-        if !(cardsOnScreen[index].isSelected) {
-            cardsOnScreen[index].isSelected = true
+        if !(selectedCards.contains(cardsOnScreen[index])) {
+            selectedCards.append(cardsOnScreen[index])
             
-            if didSelectThreeCards {
-                if checkIfMatch() {
-                    score += 2
-                    cardsOnScreen.indices.forEach() { if cardsOnScreen[$0].isSelected { cardsOnScreen[$0].isMatched = true } }
+            if let match = didSelectThreeCardsThatMatch {
+                if match == true {
+                    if let player = currentPlayer {
+                        switch player {
+                        case .first:
+                            firstPlayerScore += 5
+                        case .second:
+                            secondPlayerScore += 5
+                        }
+                    }
                 } else {
-                    score -= 1
-                    cardsOnScreen.indices.forEach() { if cardsOnScreen[$0].isSelected { cardsOnScreen[$0].isMatched = false } }
+                    decreaseScore(by: 2)
                 }
             }
         } else {
             // deselect
-            cardsOnScreen[index].isSelected = false
-            score -= 1
+            selectedCards.remove(at: selectedCards.firstIndex(of: cardsOnScreen[index])!)
+            decreaseScore(by: 1)
         }
+    }
+    
+    func shuffleCards() {
+        for index in cardsOnScreen.indices {
+            let randomIndex = Int(arc4random_uniform(UInt32(cardsOnScreen.count)))
+            cardsOnScreen.swapAt(randomIndex, index)
+        }
+    }
+    
+    func cheat() {
+        if setInCardsOnScreenDoesExist() {
+            selectedCards.removeAll()
+            setOfCards.forEach { selectedCards.append($0) }
+        }
+    }
+    
+    func dealThreeCards() {
+        if let match = didSelectThreeCardsThatMatch, match {
+            replaceMatchingCards()
+            selectedCards.removeAll()
+        } else {
+            if setInCardsOnScreenDoesExist() {
+                decreaseScore(by: 1)
+            }
+            for _ in 0..<3 { cardsOnScreen.append(cards.remove(at: cards.count.arc4random)) }
+        }
+    }
+    
+    private func setInCardsOnScreenDoesExist() -> Bool {
+        for i in 0..<cardsOnScreen.count {
+            for j in i+1..<cardsOnScreen.count {
+                for k in j+1..<cardsOnScreen.count {
+                    if checkIfMatch(with: [cardsOnScreen[i], cardsOnScreen[j], cardsOnScreen[k]]) {
+                        setOfCards.removeAll()
+                        setOfCards += [cardsOnScreen[i], cardsOnScreen[j], cardsOnScreen[k]]
+                        return true
+                    }
+                }
+            }
+        }
+        return false
     }
 }
 
+extension Game {
+    enum Player {
+        case first, second
+    }
+}
 
-extension Array where Element == Card {
-    /// Returns given amount of elements from beginning of the array, and removes them.
-    mutating func getFirst(amountOf: Int) -> [Element] {
-        var returnCards = [Element]()
-        if 0 < amountOf && amountOf <= self.count {
-            for _ in 0..<amountOf {
-                returnCards.append(self.removeFirst())
-            }
-            return returnCards
+extension Int {
+    var arc4random: Int {
+        if self > 0 {
+            return Int(arc4random_uniform((UInt32(self))))
+        } else if self < 0 {
+            return -Int(arc4random_uniform((UInt32(abs(self)))))
+        } else {
+            return 0
         }
-        return []
     }
 }

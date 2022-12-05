@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3136472B2931E0150027C219 /* CardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3136472A2931E0150027C219 /* CardView.swift */; };
+		3136472D2931E2050027C219 /* Grid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3136472C2931E2050027C219 /* Grid.swift */; };
+		313B732C293DF0C8001C207B /* FlyawayBehavior.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313B732B293DF0C8001C207B /* FlyawayBehavior.swift */; };
 		3175D8F9291F4F9A00AFE577 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3175D8F8291F4F9A00AFE577 /* AppDelegate.swift */; };
 		3175D8FB291F4F9A00AFE577 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3175D8FA291F4F9A00AFE577 /* SceneDelegate.swift */; };
 		3175D8FD291F4F9A00AFE577 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3175D8FC291F4F9A00AFE577 /* ViewController.swift */; };
@@ -16,9 +19,13 @@
 		3175D908291F4FA100AFE577 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3175D906291F4FA100AFE577 /* LaunchScreen.storyboard */; };
 		3175D910291F5A4F00AFE577 /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3175D90F291F5A4F00AFE577 /* Card.swift */; };
 		3175D912291F5B5400AFE577 /* Game.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3175D911291F5B5400AFE577 /* Game.swift */; };
+		3189F9BA2938E83B002876F1 /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3189F9B92938E83B002876F1 /* BoardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		3136472A2931E0150027C219 /* CardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardView.swift; sourceTree = "<group>"; };
+		3136472C2931E2050027C219 /* Grid.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Grid.swift; sourceTree = "<group>"; };
+		313B732B293DF0C8001C207B /* FlyawayBehavior.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlyawayBehavior.swift; sourceTree = "<group>"; };
 		3175D8F5291F4F9A00AFE577 /* Set.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Set.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3175D8F8291F4F9A00AFE577 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		3175D8FA291F4F9A00AFE577 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -30,6 +37,7 @@
 		3175D909291F4FA100AFE577 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		3175D90F291F5A4F00AFE577 /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
 		3175D911291F5B5400AFE577 /* Game.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Game.swift; sourceTree = "<group>"; };
+		3189F9B92938E83B002876F1 /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,6 +84,10 @@
 				3175D911291F5B5400AFE577 /* Game.swift */,
 				3175D90F291F5A4F00AFE577 /* Card.swift */,
 				3175D8FC291F4F9A00AFE577 /* ViewController.swift */,
+				3189F9B92938E83B002876F1 /* BoardView.swift */,
+				3136472A2931E0150027C219 /* CardView.swift */,
+				313B732B293DF0C8001C207B /* FlyawayBehavior.swift */,
+				3136472C2931E2050027C219 /* Grid.swift */,
 				3175D8FE291F4F9A00AFE577 /* Main.storyboard */,
 				313647292931DB3E0027C219 /* Supporting Files */,
 				3175D909291F4FA100AFE577 /* Info.plist */,
@@ -155,10 +167,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3136472B2931E0150027C219 /* CardView.swift in Sources */,
 				3175D903291F4F9A00AFE577 /* Set.xcdatamodeld in Sources */,
 				3175D912291F5B5400AFE577 /* Game.swift in Sources */,
+				313B732C293DF0C8001C207B /* FlyawayBehavior.swift in Sources */,
+				3136472D2931E2050027C219 /* Grid.swift in Sources */,
 				3175D8FD291F4F9A00AFE577 /* ViewController.swift in Sources */,
 				3175D910291F5A4F00AFE577 /* Card.swift in Sources */,
+				3189F9BA2938E83B002876F1 /* BoardView.swift in Sources */,
 				3175D8F9291F4F9A00AFE577 /* AppDelegate.swift in Sources */,
 				3175D8FB291F4F9A00AFE577 /* SceneDelegate.swift in Sources */,
 			);
