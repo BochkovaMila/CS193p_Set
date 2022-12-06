@@ -9,8 +9,8 @@ import Foundation
 
 class Game {
     
-    private(set) var cards = [Card]() //deckOfCards
-    private(set) var cardsOnScreen = [Card]() //playingCards
+    private(set) var cards = [Card]()
+    private(set) var cardsOnScreen = [Card]()
     private(set) var selectedCards = [Card]()
     private(set) var matchedCards = [Card]()
     private(set) var setOfCards = [Card]()

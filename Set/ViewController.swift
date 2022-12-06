@@ -85,6 +85,12 @@ class ViewController: UIViewController, UIDynamicAnimatorDelegate {
         dealCards()
     }
     
+    @IBAction func newGameButtonPressed(_ sender: UIButton) {
+        game = Game()
+        boardView.resetCards()
+        updateViewFromModel()
+    }
+    
     // MARK: - @objc funcs
     @objc func dealCards() {
         if !game.cardsOnScreen.isEmpty {
