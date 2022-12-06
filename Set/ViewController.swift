@@ -8,13 +8,8 @@
 import UIKit
 
 class ViewController: UIViewController, UIDynamicAnimatorDelegate {
-    
-    private lazy var game = Game()
-    private let defaultBorderWidth: CGFloat = 0.5
-    private let defaultBorderColor = UIColor.darkGray.cgColor
-    private let selectedBorderWidth: CGFloat = 3
-    private var selectedBorderColor = UIColor.blue.cgColor
-    
+
+    // MARK: - IBOutlets
     @IBOutlet weak var firstPlayerButton: UIButton!
     @IBOutlet weak var firstPlayerScore: UILabel!
     @IBOutlet weak var secondPlayerButton: UIButton!
@@ -33,6 +28,64 @@ class ViewController: UIViewController, UIDynamicAnimatorDelegate {
         }
     }
     
+    // MARK: - properties
+    private lazy var game = Game()
+    private lazy var animator : UIDynamicAnimator = {
+        let animator = UIDynamicAnimator(referenceView: boardView)
+        animator.delegate = self
+        return animator
+    }()
+    
+    private lazy var behavior: FlyawayBehavior = {
+        let behavior = FlyawayBehavior(animator)
+        return behavior
+    }()
+    
+    private var centerOfTheDeck: CGPoint {
+        let center = boardView.center
+        let centerOfBoardView = view.convert(center, to: boardView)
+        boardView.centerOfTheDeck = centerOfBoardView
+        return centerOfBoardView
+    }
+    
+    private var discardPileCenter: CGPoint {
+        let center = dealCardsButton.center
+        return center
+    }
+    
+    // MARK: - ViewController methods
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        behavior.snapPoint = discardPileCenter
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        secondPlayerScore.transform = CGAffineTransformMakeRotation(CGFloat.pi)
+        secondPlayerButton.transform = CGAffineTransformMakeRotation(CGFloat.pi)
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        updateViewFromModel()
+        NotificationCenter.default.addObserver(self, selector: #selector(updateViewFromModel), name: NSNotification.Name(rawValue: "didFinishTurn"), object: nil)
+    }
+    
+    // MARK: - IBActions
+    @IBAction func firstPlayerFoundSet(_ sender: UIButton) {
+        game.setTurn(for: .first)
+        updateViewFromModel()
+    }
+    
+    @IBAction func secondPlayerFoundSet(_ sender: UIButton) {
+        game.setTurn(for: .second)
+        updateViewFromModel()
+    }
+    
+    @IBAction func dealCardsButtonPressed(_ sender: UIButton) {
+        dealCards()
+    }
+    
+    // MARK: - @objc funcs
     @objc func dealCards() {
         if !game.cardsOnScreen.isEmpty {
             game.dealThreeCards()
@@ -59,62 +112,10 @@ class ViewController: UIViewController, UIDynamicAnimatorDelegate {
         }
     }
     
-    private lazy var animator : UIDynamicAnimator = {
-        let animator = UIDynamicAnimator(referenceView: boardView)
-        animator.delegate = self
-        return animator
-    }()
-    
-    private lazy var behavior: FlyawayBehavior = {
-        let behavior = FlyawayBehavior(animator)
-        return behavior
-    }()
-    
-    private var centerOfTheDeck: CGPoint {
-        let center = dealCardsButton.center
-        let centerOfBoardView = view.convert(center, to: boardView)
-        boardView.centerOfTheDeck = centerOfBoardView
-        return centerOfBoardView
-    }
-    
-    private var discardPileCenter: CGPoint {
-        return centerOfTheDeck
-    }
-    
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        behavior.snapPoint = discardPileCenter
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        secondPlayerScore.transform = CGAffineTransformMakeRotation(CGFloat.pi)
-        secondPlayerButton.transform = CGAffineTransformMakeRotation(CGFloat.pi)
-    }
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        updateViewFromModel()
-        NotificationCenter.default.addObserver(self, selector: #selector(updateViewFromModel), name: NSNotification.Name(rawValue: "didFinishTurn"), object: nil)
-    }
-    
-    @IBAction func firstPlayerFoundSet(_ sender: UIButton) {
-        game.setTurn(for: .first)
-        updateViewFromModel()
-    }
-    
-    @IBAction func secondPlayerFoundSet(_ sender: UIButton) {
-        game.setTurn(for: .second)
-        updateViewFromModel()
-    }
-    
-    @IBAction func dealCardsButtonPressed(_ sender: UIButton) {
-        dealCards()
-    }
-    
     @objc func updateViewFromModel() {
         for index in game.cardsOnScreen.indices {
             let card = game.cardsOnScreen[index]
-
+            
             if index >= boardView.cardViews.count {
                 // create cards
                 let cardView = createCardView()
@@ -127,62 +128,63 @@ class ViewController: UIViewController, UIDynamicAnimatorDelegate {
                 updateCardView(cardView, for: card)
                 configureCardViewState(cardView, card)
             }
-            
-            // remove from boardView
-            for _ in game.cardsOnScreen.count..<boardView.cardViews.count {
-                boardView.cardViews.removeLast().removeFromSuperview()
-            }
-            
-            // Deal Cards Animation
-            var numberOfCardsDealt = 0
-            Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { (timer) in
-                for cardView in self.boardView.cardViews {
-                    if (cardView.alpha == 0) {
-                        cardView.animateDeal(from: self.centerOfTheDeck, delay: TimeInterval(numberOfCardsDealt) * 0.25)
-                        numberOfCardsDealt += 1
-                    }
+        }
+        
+        // remove from boardView
+        for _ in game.cardsOnScreen.count..<boardView.cardViews.count {
+            boardView.cardViews.removeLast().removeFromSuperview()
+        }
+        
+        // Deal Cards Animation
+        var numberOfCardsDealt = 0
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { (timer) in
+            for cardView in self.boardView.cardViews {
+                if (cardView.alpha == 0) {
+                    cardView.animateDeal(from: self.centerOfTheDeck, delay: TimeInterval(numberOfCardsDealt) * 0.25)
+                    numberOfCardsDealt += 1
                 }
             }
-            
-            // replace or remove matching cards
-            if let matched = game.didSelectThreeCardsThatMatch, matched {
-                if game.cards.isEmpty {
-                    game.dealThreeCards()
-                    for index in game.cardsOnScreen.indices {
-                        let card = game.cardsOnScreen[index]
-                        let cardView = boardView.cardViews[index]
-                        cardView.alpha = 1
-                        updateCardView(cardView, for: card)
-                        configureCardViewState(cardView, card)
-                    }
-                    for _ in game.cardsOnScreen.count..<boardView.cardViews.count {
-                        boardView.cardViews.removeLast().removeFromSuperview()
-                    }
-                } else {
-                    dealCards()
-                }
-            }
-            
-            // update labels
-            firstPlayerScore.text =  "\(game.firstPlayerScore):\(game.secondPlayerScore)"
-            secondPlayerScore.text = "\(game.secondPlayerScore):\(game.firstPlayerScore)"
-            
-            if let _ = game.currentPlayer {
-                firstPlayerButton.isEnabled = false
-                secondPlayerButton.isEnabled = false
-            } else {
-                firstPlayerButton.isEnabled = true
-                secondPlayerButton.isEnabled = true
-            }
-            
+        }
+        
+        // replace or remove matching cards
+        if let matched = game.didSelectThreeCardsThatMatch, matched {
             if game.cards.isEmpty {
-                dealCardsButton.isEnabled = false
+                game.dealThreeCards()
+                for index in game.cardsOnScreen.indices {
+                    let card = game.cardsOnScreen[index]
+                    let cardView = boardView.cardViews[index]
+                    cardView.alpha = 1
+                    updateCardView(cardView, for: card)
+                    configureCardViewState(cardView, card)
+                }
+                for _ in game.cardsOnScreen.count..<boardView.cardViews.count {
+                    boardView.cardViews.removeLast().removeFromSuperview()
+                }
             } else {
-                dealCardsButton.isEnabled = true
+                dealCards()
             }
+        }
+        
+        // update labels
+        firstPlayerScore.text =  "\(game.firstPlayerScore):\(game.secondPlayerScore)"
+        secondPlayerScore.text = "\(game.secondPlayerScore):\(game.firstPlayerScore)"
+        
+        if let _ = game.currentPlayer {
+            firstPlayerButton.isEnabled = false
+            secondPlayerButton.isEnabled = false
+        } else {
+            firstPlayerButton.isEnabled = true
+            secondPlayerButton.isEnabled = true
+        }
+        
+        if game.cards.isEmpty {
+            dealCardsButton.isEnabled = false
+        } else {
+            dealCardsButton.isEnabled = true
         }
     }
     
+    // MARK: - Card View Methods
     private var tmpCards = [CardView]()
     private func configureCardViewState(_ cardView: CardView, _ card: Card) {
         if game.selectedCards.contains(card) {

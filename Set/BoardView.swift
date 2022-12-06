@@ -33,7 +33,9 @@ class BoardView: UIView {
                                        width: frame.width - cellPadding,
                                        height: frame.height - cellPadding)
                 let cardView = cardViews[i]
-                // animation here later
+                UIViewPropertyAnimator.runningPropertyAnimator(withDuration: 0.3, delay: 0, options: [.curveEaseInOut], animations: {
+                    cardView.frame = cardFrame
+                })
             }
         }
     }

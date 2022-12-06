@@ -43,6 +43,9 @@ class Game {
             }
         }
         cards.shuffle()
+        for _ in 0..<24 {
+            cardsOnScreen.append(cards.remove(at: cards.count.arc4random))
+        }
     }
     
     func setTurn(for player: Player) {
@@ -100,7 +103,7 @@ class Game {
     }
     
     func chooseCard(at index: Int) {
-        if didSelectThreeCardsThatMatch != nil {
+        if let matched = didSelectThreeCardsThatMatch, matched {
             replaceMatchingCards()
             selectedCards.removeAll()
         }
@@ -109,7 +112,7 @@ class Game {
             selectedCards.append(cardsOnScreen[index])
             
             if let match = didSelectThreeCardsThatMatch {
-                if match == true {
+                if match {
                     if let player = currentPlayer {
                         switch player {
                         case .first:

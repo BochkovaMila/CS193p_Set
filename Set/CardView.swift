@@ -44,7 +44,7 @@ class CardView: UIView {
     func configureState() {
         layer.cornerRadius = cornerRadius
         layer.borderWidth = patternLineWidth*2
-        layer.borderColor = #colorLiteral(red: 0, green: 0, blue: 0, alpha: 0).cgColor
+        layer.borderColor = #colorLiteral(red: 0.3434241712, green: 0.3357810974, blue: 0.8395318389, alpha: 1).cgColor
         if isSelected {
             layer.borderColor = #colorLiteral(red: 0.01680417731, green: 0.1983509958, blue: 1, alpha: 1).cgColor
             if let matched = isMatched {
@@ -115,13 +115,14 @@ class CardView: UIView {
     
     private func drawSquiggle() {
         let path = UIBezierPath()
-        path.move(to: CGPoint(x: bounds.minX, y: bounds.minY))
-        path.addArc(withCenter: CGPoint(x: bounds.midX - patternWidth/2, y: bounds.midY), radius: bounds.height/2, startAngle: CGFloat.pi/4, endAngle: 7*CGFloat.pi/4, clockwise: true)
-        path.addLine(to: CGPoint(x: bounds.midX - patternWidth/2, y: bounds.midY))
-        path.addQuadCurve(to: CGPoint(x: bounds.midX + patternWidth/2, y: bounds.midY), controlPoint: CGPoint(x: bounds.maxX, y: bounds.maxY))
-        path.addArc(withCenter: CGPoint(x: bounds.midX + patternWidth/2, y: bounds.midY), radius: bounds.height/2, startAngle: 5*CGFloat.pi/4, endAngle: 3*CGFloat.pi/4, clockwise: false)
-        path.addLine(to: CGPoint(x: bounds.midX + patternWidth/2, y: bounds.midY))
-        path.addQuadCurve(to: CGPoint(x: bounds.midX - patternWidth/2, y: bounds.midY), controlPoint: CGPoint(x: bounds.minX, y: bounds.minY))
+        path.move(to: patternOrgin.offsetBy(dx: 0, dy: patternHeight))
+        let c1_1 = CGPoint(x: bounds.width*0.25, y: bounds.height*0.25)
+        let c1_2 = CGPoint(x: bounds.width*0.50, y: bounds.height*0.50)
+        let c2_1 = c1_1.offsetBy(dx: 2*(bounds.midX - c1_1.x), dy: 2*(bounds.midY - c1_1.y))
+        let c2_2 = c1_2.offsetBy(dx: 2*(bounds.midX - c1_2.x), dy: 2*(bounds.midY - c1_2.y))
+        path.addCurve(to: patternOrgin.offsetBy(dx: patternWidth, dy: 0), controlPoint1: c1_1, controlPoint2: c1_2)
+        path.addCurve(to: patternOrgin.offsetBy(dx: 0, dy: patternHeight), controlPoint1: c2_1, controlPoint2: c2_2)
+        
         drawPattern(with: path)
     }
     
@@ -134,14 +135,13 @@ class CardView: UIView {
             UIGraphicsGetCurrentContext()?.saveGState()
             path.addClip()
             
-            // Draw stripe
             for offset in stride(from: CGFloat(0), to: patternWidth, by: SizeRatio.stripInterval) {
                 path.move(to: patternOrgin.offsetBy(dx: CGFloat(offset), dy: 0))
                 path.addLine(to: patternOrgin.offsetBy(dx: CGFloat(offset), dy: patternHeight))
             }
         }
         
-        if count == 1 {
+        if count == 1 || count == 3 {
             shading == .solid ? path.fill() : path.stroke()
         }
         
