@@ -1,9 +1,9 @@
 # CS193p_Set
-CS193p Homework Assignment 
+CS193p Stanford Course Homework Assignment 
 
 ## About
 
-Set is a card game for 2 players that was inspired by real-time card game designed by Marsha Falco in 1974 and published by Set Enterprises in 1991. The deck consists of 81 unique cards that vary in four features across three possibilities for each kind of feature: number of shapes, shape, shading, and color.
+Set is a card game for 2 players that was inspired by real-time card game designed by Marsha Falco in 1974 and published by Set Enterprises in 1991. The deck consists of 81 unique cards that vary in four features across three possibilities for each kind of feature: number of shapes, shape, shading, and color. When one of the players have found a set of 3 unique cards, the player presses 'Set!' button and selects cards. If cards are chosen correctly, they disappear and the player gets 5 points. There is a penalty for chosing incorrect cards that don't make a set. Players continue the game while there're cards left on board, or they can press 'New Game' button to start a game from scratch.
 
 ## Game Rules
 
